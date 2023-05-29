@@ -1,0 +1,13 @@
+Intermediate/*
+Binaries/*
+.vs/*
+.vsconfig
+Config/*
+Content/*
+LearnTools.sln
+LearnTools.uproject
+Platforms/*
+Saved/*
+Source/*
+Plugins/*
+!Plugins/IconEditor
