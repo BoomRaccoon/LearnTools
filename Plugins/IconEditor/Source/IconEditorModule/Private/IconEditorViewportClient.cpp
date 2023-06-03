@@ -57,6 +57,24 @@ FIconEditorViewportClient::FIconEditorViewportClient(const TSharedRef<const FIco
 		FConsoleCommandDelegate::CreateRaw(this, &FIconEditorViewportClient::GetAllSublevels)
 	);
 
+	IConsoleManager::Get().RegisterConsoleCommand(
+		TEXT("Streaminglvl.RefreshStreamingLevels"),
+		TEXT(""),
+		FConsoleCommandDelegate::CreateRaw(this, &FIconEditorViewportClient::RefreshStreamingLevels)
+	);
+	
+	IConsoleManager::Get().RegisterConsoleCommand(
+		TEXT("Streaminglvl.UpdateStreamingLevels"),
+		TEXT(""),
+		FConsoleCommandDelegate::CreateRaw(this, &FIconEditorViewportClient::UpdateStreamingLevels)
+	);
+
+	IConsoleManager::Get().RegisterConsoleCommand(
+		TEXT("Mine.RefreshOutlinner"),
+		TEXT(""),
+		FConsoleCommandDelegate::CreateRaw(this, &FIconEditorViewportClient::RefreshOutliner)
+	);
+
 
 }
 
@@ -71,6 +89,21 @@ void FIconEditorViewportClient::GetAllSublevels()
 void FIconEditorViewportClient::LogWorld()
 {
 	UE_LOG(LogTemp, Display, TEXT("Name of the viewport world: %s"), *GetWorld()->GetName());
+}
+
+void FIconEditorViewportClient::RefreshStreamingLevels()
+{
+	GetWorld()->RefreshStreamingLevels();
+}
+
+void FIconEditorViewportClient::UpdateStreamingLevels()
+{
+	GetWorld()->UpdateLevelStreaming();
+}
+
+void FIconEditorViewportClient::RefreshOutliner()
+{
+	IconEditorToolkit.Pin().Get()->Outliner->Refresh();
 }
 
 FIconEditorViewportClient::~FIconEditorViewportClient()

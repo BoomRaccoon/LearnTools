@@ -67,6 +67,9 @@ public:
 	explicit FIconEditorViewportClient(const TSharedRef<const FIconEditorToolkit>& InAssetEditorToolkit, FPreviewScene* InPreviewScene = nullptr, const TWeakPtr<SEditorViewport>& InEditorViewportWidget = nullptr);
 	void GetAllSublevels();
 	void LogWorld();
+	void RefreshStreamingLevels();
+	void UpdateStreamingLevels();
+	void RefreshOutliner();
 	virtual ~FIconEditorViewportClient() override;
 
 	void SetPreviewMesh(UStaticMesh* InStaticMesh);
