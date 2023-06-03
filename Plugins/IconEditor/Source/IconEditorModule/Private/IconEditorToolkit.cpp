@@ -119,39 +119,52 @@ void FIconEditorToolkit::OnListAssetChanged(TSharedPtr<FAssetData> SelectedAsset
 			if (  LastLevel )
 			{
 				//IconEditorViewportClient->GetWorld()->RemoveStreamingLevel(LastLevel);
-				FLatentActionInfo LInfo;
-				LInfo.UUID = FMath::Rand();
+				FLatentActionInfo ULInfo;
+				ULInfo.UUID = FMath::Rand();
 				LastLevel->SetShouldBeVisible(false);
-				UGameplayStatics::UnloadStreamLevel(IconEditorViewportClient->GetWorld(), LastLevel->GetWorldAssetPackageFName(), LInfo, true);
+				LastLevel->SetShouldBeVisibleInEditor(false);
+				UGameplayStatics::UnloadStreamLevel(IconEditorViewportClient->GetWorld(), LastLevel->GetWorldAssetPackageFName(), ULInfo, true);
 			}
-			UGameplayStatics::LoadStreamLevelBySoftObjectPtr(IconEditorViewportClient->GetWorld(), StreamingLevel->GetWorldAsset(), true, true, {});
+			FLatentActionInfo LInfo;
+			LInfo.UUID = FMath::Rand();
+			UGameplayStatics::LoadStreamLevelBySoftObjectPtr(IconEditorViewportClient->GetWorld(), StreamingLevel->GetWorldAsset(), true, true, LInfo);
 			
 			IconEditorViewportClient->GetWorld()->RefreshStreamingLevels();
 
-			//FAssetRegistryModule::AssetCreated(NewWorld);
-			//NewWorld->MarkPackageDirty();
-			//FString FilePath = ConentDirPath + PackageName.RightChop(1) + FPackageName::GetAssetPackageExtension();
-			//FSavePackageArgs SaveArgs;
-			//SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-			//bool bSuccess = UPackage::SavePackage(MyPackage, NewWorld, *FilePath, SaveArgs);
+			FAssetRegistryModule::AssetCreated(NewWorld);
+			NewWorld->MarkPackageDirty();
+			FString FilePath = FPaths::ProjectPluginsDir() + "IconEditor" + "/temp/" + PackageName.RightChop(1) + FPackageName::GetAssetPackageExtension();
+			FSavePackageArgs SaveArgs;
+			SaveArgs.TopLevelFlags = RF_Public ;
+			bool bSuccess = UPackage::SavePackage(MyPackage, NewWorld, *FilePath, SaveArgs);
 
 
 			IconEditorViewportClient->creationNumber++;
 		}
 		else
 		{
-			ULevelStreaming* LastLevel = *MyEditor->AssetDataToStreamingLevel.Find(AssetList->GetSelectedItems()[0]);
+			ULevelStreaming* LastLevel = *MyEditor->AssetDataToStreamingLevel.Find(LastSelected);
 			ULevelStreaming* NewLevel = *MyEditor->AssetDataToStreamingLevel.Find(SelectedAsset);
-			UGameplayStatics::LoadStreamLevelBySoftObjectPtr(IconEditorViewportClient->GetWorld(), NewLevel, true, true, {});
-			//IconEditorViewportClient->GetWorld()->RemoveStreamingLevel(LastLevel);
+			FLatentActionInfo LInfo;
+			LInfo.UUID = FMath::Rand();
+			NewLevel->SetShouldBeVisibleInEditor(true);
+			UGameplayStatics::LoadStreamLevel(IconEditorViewportClient->GetWorld(), FName("World_"+SelectedAsset->GetAsset()->GetName()), true, true, LInfo);
+
 			LastLevel->SetShouldBeVisible(false);
-			UGameplayStatics::UnloadStreamLevelBySoftObjectPtr(IconEditorViewportClient->GetWorld(), LastLevel->GetWorldAsset(), {}, true);
-			IconEditorViewportClient->GetWorld()->RefreshStreamingLevels( {LastLevel, NewLevel} );
+			LastLevel->SetShouldBeVisibleInEditor(false);
+			
+			FLatentActionInfo ULInfo;
+			ULInfo.UUID = FMath::Rand();
+			UGameplayStatics::UnloadStreamLevel(IconEditorViewportClient->GetWorld(), LastLevel->GetWorldAssetPackageFName(), ULInfo, true);
+			IconEditorViewportClient->SelectedActor = Cast<AIconEditorActor>(UGameplayStatics::GetActorOfClass(LastLevel->GetWorld(), AIconEditorActor::StaticClass()));
 			
 		}
 
-		IconEditorViewportClient->Viewport->InvalidateHitProxy();
 	}
+	IconEditorViewportClient->GetWorld()->RefreshStreamingLevels();
+	IconEditorViewportClient->GetWorld()->UpdateLevelStreaming();
+	IconEditorViewportClient->Viewport->InvalidateHitProxy();
+	LastSelected = SelectedAsset;
 }
 
 void FIconEditorToolkit::OnAssetSelected(const FAssetData& InAssetData)
@@ -791,11 +804,12 @@ FReply FIconEditorToolkit::TestButton3()
 
 	UWorld* IEWorld = IconEditorViewportClient->GetWorld();
 
-	FLatentActionInfo LInfo;
-	LInfo.UUID = FMath::Rand();
-
-	UGameplayStatics::UnloadStreamLevel(IconEditorViewportClient->GetWorld(),IEWorld->GetStreamingLevels().Last()->GetWorldAssetPackageFName(), {}, true);
+	FLatentActionInfo ULInfo;
+	ULInfo.UUID = FMath::Rand();
+	UGameplayStatics::UnloadStreamLevel(IconEditorViewportClient->GetWorld(),IEWorld->GetStreamingLevels().Last()->GetWorldAssetPackageFName(), ULInfo, true);
+	
 	IconEditorViewportClient->GetWorld()->RefreshStreamingLevels();
+	IconEditorViewportClient->GetWorld()->UpdateLevelStreaming();
 
  	return FReply::Handled();
 }
@@ -808,6 +822,8 @@ FReply FIconEditorToolkit::TestButton4()
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("Number of actors: %d"), IconEditorViewportClient->GetWorld()->GetActorCount());
+	IconEditorViewportClient->GetWorld()->RefreshStreamingLevels();
+	IconEditorViewportClient->GetWorld()->UpdateLevelStreaming();
 
 	return FReply::Handled();
 }
@@ -895,7 +911,7 @@ void FIconEditorToolkit::OnClose()
 	AssetSelectionBox.Reset();
 	MyEditor->IconEditorObject->ActorLevelMap.Empty();
 
-	FString EditorDirPath = FPaths::ProjectContentDir() + "z_TempIconsDir/";
+	FString EditorDirPath = FPaths::ProjectContentDir() + "z_Temp/";
 	FFileManagerGeneric::Get().DeleteDirectory(*EditorDirPath, false, true);	
 	int32 LastError = FPlatformMisc::GetLastError();
 	TCHAR ErrorBuffer[1024];
@@ -905,7 +921,7 @@ void FIconEditorToolkit::OnClose()
 	{
 		ViewportClient->GetWorld()->RemoveLevel(Current);
 	}*/
-
+	//GEngine->ForceGarbageCollection(true);
 	FBaseAssetToolkit::OnClose();
 }
 

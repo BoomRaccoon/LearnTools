@@ -5,9 +5,7 @@
 #include "Tools/BaseAssetToolkit.h"
 #include <AdvancedPreviewSceneModule.h>
 #include <Templates/SharedPointer.h>
-#include "IconEditorViewportClient.h"
-#include <SceneOutliner/Public/ISceneOutlinerTreeItem.h>
-
+#include <PropertyCustomizationHelpers.h>
 
 
 class FAdvancedPreviewScene;
@@ -61,6 +59,8 @@ protected:
 	int32 height = IconEditorSettings->DefaultIconResolution.Y;
 	TSharedPtr<class SNumericEntryBox<int32>> heightBox;
 	TSharedPtr<class SNumericEntryBox<int32>> widthBox;
+	TSharedPtr<FAssetData> LastSelected;
+
 
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& InTabManager) override;
 	void UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager) override;

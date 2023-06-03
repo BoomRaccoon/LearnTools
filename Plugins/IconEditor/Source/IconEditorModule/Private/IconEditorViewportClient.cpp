@@ -26,7 +26,7 @@
 #include <Kismet/GameplayStatics.h>
 #include <Engine/LevelStreamingDynamic.h>
 #include <Engine/LevelScriptActor.h>
-#include "IconEditorSettings.h"
+
 
 #define LOCTEXT_NAMESPACE "IconEditorToolkit"
 
@@ -391,24 +391,26 @@ void FIconEditorViewportClient::AddAdditionalActor(UStaticMesh* ActorMesh, FVect
 	if (!ToolkitObj->MyEditor->AssetDataToStreamingLevel.Find(ToolkitObj->AssetList->GetSelectedItems()[0]))
 	{
 
-		FString ConentDirPath = FPaths::ProjectContentDir();
-		FString AssetName = "World_" + FString::FromInt(creationNumber);
+		FString ContentDirPath = FPaths::ProjectContentDir();
+		FString AssetName = "World_" + ActorMesh->GetName();
 		FString PackageName = TEXT("/" + AssetName);
 
 
 
 		UPackage* MyPackage = CreatePackage( *PackageName );
-		LoadPackage(MyPackage, *PackageName, LOAD_EditorOnly);
-		UWorld* NewWorld = NewObject<UWorld>(MyPackage, *AssetName, RF_Public | RF_Standalone);	
+		LoadPackage(nullptr, *PackageName, LOAD_EditorOnly);
+		
+		UWorld* NewWorld = NewObject<UWorld>(MyPackage, *AssetName, RF_Public );	
 		NewWorld->InitializeNewWorld();
 		TSoftObjectPtr<UWorld> NWPtr = NewWorld;
-		FLatentActionInfo LatentInfo;
+		
 		ULevelStreamingDynamic* StreamingLevel = NewObject<ULevelStreamingDynamic>(GetWorld(), FName(PackageName));
 		StreamingLevel->SetWorldAsset(NWPtr);	
 		StreamingLevel->SetShouldBeLoaded(true);
 		StreamingLevel->bInitiallyLoaded = true;
-		
 		SpawnParams.Owner = Cast<AActor>(StreamingLevel->GetLevelScriptActor());
+		SpawnParams.OverridePackage = MyPackage;
+
 
 		SelectedActor = NewWorld->SpawnActor<AIconEditorActor>(SpawnParams);
 		SelectedActor->StaticMeshComponent->SetStaticMesh(ActorMesh);
@@ -416,15 +418,19 @@ void FIconEditorViewportClient::AddAdditionalActor(UStaticMesh* ActorMesh, FVect
 
 		ToolkitObj->MyEditor->AssetDataToStreamingLevel.Add(ToolkitObj->AssetList->GetSelectedItems()[0], StreamingLevel);
 		GetWorld()->AddStreamingLevel(StreamingLevel);
-		UGameplayStatics::LoadStreamLevelBySoftObjectPtr(GetWorld(), StreamingLevel->GetWorldAsset(), true, true, {});
-		GetWorld()->RefreshStreamingLevels({StreamingLevel});
 		
-		//FAssetRegistryModule::AssetCreated(NewWorld);
-		//NewWorld->MarkPackageDirty();
-		//FString FilePath = ConentDirPath + PackageName.RightChop(1) + FPackageName::GetAssetPackageExtension();
-		//FSavePackageArgs SaveArgs;
-		//SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		//bool bSuccess = UPackage::SavePackage(MyPackage, NewWorld, *FilePath, SaveArgs);
+		FLatentActionInfo LInfo;
+		LInfo.UUID = FMath::Rand();
+		UGameplayStatics::LoadStreamLevel(GetWorld(), StreamingLevel->GetWorldAssetPackageFName(), true, true, LInfo);
+		GetWorld()->RefreshStreamingLevels({StreamingLevel});
+		GetWorld()->UpdateLevelStreaming();
+		
+		FAssetRegistryModule::AssetCreated(NewWorld);
+		NewWorld->MarkPackageDirty();
+		FString FilePath = FPaths::ProjectPluginsDir() + "IconEditor" + "/temp/" + PackageName.RightChop(1) + FPackageName::GetAssetPackageExtension();
+		FSavePackageArgs SaveArgs;
+		SaveArgs.TopLevelFlags = RF_Public ;
+		bool bSuccess = UPackage::SavePackage(MyPackage, NewWorld, *FilePath, SaveArgs);
 		
 	}
 	else
@@ -439,6 +445,8 @@ void FIconEditorViewportClient::AddAdditionalActor(UStaticMesh* ActorMesh, FVect
 	}
 
 
+	GetWorld()->RefreshStreamingLevels();
+	GetWorld()->UpdateLevelStreaming();
 	creationNumber++;
 	Viewport->InvalidateHitProxy();
 }

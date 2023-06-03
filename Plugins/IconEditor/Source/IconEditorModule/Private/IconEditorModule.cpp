@@ -46,6 +46,10 @@ void FIconEditorModule::StartupModule()
 		}));
 	}
 
+
+	
+	FPackageName::RegisterMountPoint("/temp/", FPaths::ProjectPluginsDir() + "IconEditor");
+
 	//IConsoleManager::Get().RegisterConsoleCommand
 
 }
